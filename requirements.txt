@@ -1,0 +1,7 @@
+pytz
+pandas
+openpyxl
+numpy
+tqdm
+pathlib2
+Flask 
