@@ -49,9 +49,9 @@ def keep_alive():
             print(f"[Keep-Alive] Error pinging server: {e}")
         time.sleep(60)  # Wait 1 minute
 
-def seconds_until_next_11am_ist():
+def seconds_until_next_1145am_ist():
     now = datetime.now(IST)
-    next_run = now.replace(hour=11, minute=0, second=0, microsecond=0)
+    next_run = now.replace(hour=11, minute=45, second=0, microsecond=0)
     if now >= next_run:
         next_run += timedelta(days=1)
     return (next_run - now).total_seconds()
@@ -66,16 +66,16 @@ def run_campaign():
         "python", "src/main.py",
         "--resume", "data/Ayush.pdf",
         "--batch-size", "20",
-        "--daily-limit", "1350"
+        "--daily-limit", "1151"
     ], cwd="AutoEmailer/CV_Autorun")
     log_audit('Campaign ENDED')
 
 def scheduler_loop():
     while True:
-        wait_seconds = seconds_until_next_11am_ist()
-        print(f"[Scheduler] Waiting {wait_seconds/3600:.2f} hours until next run at 11:00 AM IST...")
+        wait_seconds = seconds_until_next_1145am_ist()
+        print(f"[Scheduler] Waiting {wait_seconds/3600:.2f} hours until next run at 11:45 AM IST...")
         time.sleep(wait_seconds)
-        print("[Scheduler] Starting email campaign at 11:00 AM IST!")
+        print("[Scheduler] Starting email campaign at 11:45 AM IST!")
         run_campaign()
         time.sleep(60)
 
