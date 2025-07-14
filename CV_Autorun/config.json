@@ -1,0 +1,21 @@
+{
+    "campaigns": {
+        "default": {
+            "name": "default",
+            "template": "default",
+            "batch_size": 50,
+            "delay": 20,
+            "test_mode": false
+        }
+    },
+    "email": {
+        "smtp_server": "smtp.gmail.com",
+        "smtp_port": 587,
+        "use_tls": true,
+        "batch_delay": 20,
+        "max_retries": 2
+    },
+    "attachments": {
+        "resume": "data/Ayush.pdf"
+    }
+} 
