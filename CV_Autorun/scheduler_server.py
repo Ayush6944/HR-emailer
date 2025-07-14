@@ -8,7 +8,7 @@ import os
 import requests
 
 # ===================== CONFIGURATION =====================
-SCHEDULE_HOUR = 18  # 6 AM (used after first run)
+SCHEDULE_HOUR = 6  # 6 AM (used after first run)
 SCHEDULE_MINUTE = 15  # 0 minutes (used after first run)
 IST = pytz.timezone('Asia/Kolkata')
 LOG_FILE = 'scheduler_audit.log'
