@@ -6,17 +6,18 @@ import threading
 from flask import Flask, send_file
 import os
 import requests
+from typing import Optional
 
 # ===================== CONFIGURATION =====================
-SCHEDULE_HOUR = 6  # 6 AM (used after first run)
-SCHEDULE_MINUTE = 15  # 0 minutes (used after first run)
+SCHEDULE_HOUR = 10  # 10 AM (used after first run)
+SCHEDULE_MINUTE = 20  # 20 minutes (used after first run)
 IST = pytz.timezone('Asia/Kolkata')
 LOG_FILE = 'scheduler_audit.log'
 # ========================================================
 
 app = Flask(__name__)
 
-last_run_info = {'start': None, 'end': None, 'error': None}
+last_run_info: dict[str, Optional[str]] = {'start': None, 'end': None, 'error': None}
 
 @app.route('/')
 def home():

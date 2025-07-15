@@ -252,18 +252,24 @@ def run_campaign(resume_path: str, batch_size: int = 50, daily_limit: int = 500,
         sys.exit(1)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Run email campaign')
-    parser.add_argument('--resume', required=True, help='Path to resume file')
-    parser.add_argument('--batch-size', type=int, default=50, help='Number of emails to send in each batch')
-    parser.add_argument('--daily-limit', type=int, default=500, help='Maximum number of emails to send per day')
-    parser.add_argument('--background', action='store_true', help='Run in background mode')
-    args = parser.parse_args()
-    
-    if args.background:
-        # Detach from terminal
-        pid = os.fork()
-        if pid > 0:
-            print(f"Campaign started in background with PID {pid}")
-            sys.exit(0)
-    
-    run_campaign(args.resume, args.batch_size, args.daily_limit, args.background) 
+    import traceback
+    try:
+        parser = argparse.ArgumentParser(description='Run email campaign')
+        parser.add_argument('--resume', required=True, help='Path to resume file')
+        parser.add_argument('--batch-size', type=int, default=50, help='Number of emails to send in each batch')
+        parser.add_argument('--daily-limit', type=int, default=500, help='Maximum number of emails to send per day')
+        parser.add_argument('--background', action='store_true', help='Run in background mode')
+        args = parser.parse_args()
+        if args.background:
+            # Detach from terminal
+            pid = os.fork()
+            if pid > 0:
+                print(f"Campaign started in background with PID {pid}")
+                sys.exit(0)
+        run_campaign(args.resume, args.batch_size, args.daily_limit, args.background)
+    except Exception as e:
+        logger.error(f"Fatal error in main: {e}")
+        logger.error(traceback.format_exc())
+        print(f"Fatal error in main: {e}")
+        print(traceback.format_exc())
+        sys.exit(2) 
