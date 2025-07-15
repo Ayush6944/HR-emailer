@@ -10,7 +10,7 @@ from typing import Optional
 
 # ===================== CONFIGURATION =====================
 SCHEDULE_HOUR = 17  # 10 AM (used after first run)
-SCHEDULE_MINUTE = 28  # 20 minutes (used after first run)
+SCHEDULE_MINUTE = 45  # 20 minutes (used after first run)
 IST = pytz.timezone('Asia/Kolkata')
 LOG_FILE = 'scheduler_audit.log'
 # ========================================================
@@ -167,7 +167,7 @@ def run_campaign():
             "python", "src/main.py",
             "--resume", "data/Ayush_Srivastava.pdf",
             "--batch-size", "5",
-            "--daily-limit", "1001"
+            "--daily-limit", "751"
         ], check=True)
     except Exception as e:
         last_run_info['error'] = str(e)
