@@ -1,7 +1,0 @@
-flask
-pytz
-requests
-pandas
-openpyxl
-tqdm
-
