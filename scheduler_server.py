@@ -9,8 +9,8 @@ import requests
 from typing import Optional
 
 # ===================== CONFIGURATION =====================
-SCHEDULE_HOUR = 17  # 10 AM (used after first run)
-SCHEDULE_MINUTE = 46  # 20 minutes (used after first run)
+SCHEDULE_HOUR = 18  # 10 AM (used after first run)
+SCHEDULE_MINUTE = 10  # 20 minutes (used after first run)
 IST = pytz.timezone('Asia/Kolkata')
 LOG_FILE = 'scheduler_audit.log'
 # ========================================================

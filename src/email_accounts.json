@@ -17,7 +17,7 @@
       "smtp_server": "smtp.gmail.com",
       "smtp_port": 587,
       "sender_email": "ayushsrivastava.sde@gmail.com",
-      "sender_password": "cxwkndikwmwsqtnv",
+      "sender_password": "wuaynnufeptbpilp",
       "use_tls": true,
       "daily_limit_range": [400, 450],
       "batch_delay": 2,
