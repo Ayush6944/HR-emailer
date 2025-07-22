@@ -1,7 +1,7 @@
 import argparse
 import logging
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from data_manager import DataManager
 from email_engine import EmailEngine
 from template_manager import TemplateManager
@@ -14,6 +14,9 @@ from typing import Dict, Any
 import sqlite3
 import random
 import csv
+
+EXHAUSTED_ACCOUNTS_FILE = 'exhausted_accounts.json'
+EXHAUSTION_PERIOD_HOURS = 24
 
 # Set up logging
 logging.basicConfig(
@@ -71,6 +74,42 @@ def load_progress() -> int:
         logger.error(f"Error loading progress: {str(e)}")
     return 0
 
+def load_exhausted_accounts():
+    """Load exhausted accounts and remove those past the cooldown period."""
+    now = datetime.now()
+    exhausted = {}
+    if os.path.exists(EXHAUSTED_ACCOUNTS_FILE):
+        with open(EXHAUSTED_ACCOUNTS_FILE, 'r') as f:
+            try:
+                exhausted = json.load(f)
+            except Exception:
+                exhausted = {}
+    # Remove accounts past cooldown
+    to_remove = []
+    for email, ts in exhausted.items():
+        exhausted_time = datetime.fromisoformat(ts)
+        if now - exhausted_time > timedelta(hours=EXHAUSTION_PERIOD_HOURS):
+            to_remove.append(email)
+    for email in to_remove:
+        exhausted.pop(email)
+    if to_remove:
+        with open(EXHAUSTED_ACCOUNTS_FILE, 'w') as f:
+            json.dump(exhausted, f)
+    return exhausted
+
+def mark_account_exhausted(email):
+    exhausted = load_exhausted_accounts()
+    exhausted[email] = datetime.now().isoformat()
+    with open(EXHAUSTED_ACCOUNTS_FILE, 'w') as f:
+        json.dump(exhausted, f)
+
+def is_gmail_limit_error(error_str):
+    return (
+        'Daily user sending limit exceeded' in error_str or
+        '5.4.5 Daily user sending limit exceeded' in error_str or
+        '5.4.5 sending limits' in error_str
+    )
+
 def signal_handler(signum, frame):
     """Handle signals to gracefully stop the campaign."""
     logger.info("\nReceived signal to stop. Saving progress...")
@@ -97,6 +136,8 @@ def run_campaign(resume_path: str, batch_size: int = 50, daily_limit: int = 500,
             accounts_json = json.load(f)
             sender_accounts = [acc for acc in accounts_json['email_accounts'] if acc.get('enabled', True)]
         
+        exhausted_accounts = load_exhausted_accounts()
+
         # Verify resume exists
         if not os.path.exists(resume_path):
             raise FileNotFoundError(f"Resume not found at {resume_path}")
@@ -127,8 +168,16 @@ def run_campaign(resume_path: str, batch_size: int = 50, daily_limit: int = 500,
         
         # Round-robin send logic
         num_accounts = len(sender_accounts)
-        for idx, company in enumerate(companies):
-            account = sender_accounts[idx % num_accounts]
+        idx = 0
+        while idx < len(companies):
+            company = companies[idx]
+            # Filter out exhausted accounts
+            available_accounts = [acc for acc in sender_accounts if acc['sender_email'] not in exhausted_accounts]
+            if not available_accounts:
+                logger.error("All sender accounts are exhausted for the day. Stopping campaign.")
+                break
+            # Use round-robin among available accounts
+            account = available_accounts[idx % len(available_accounts)]
             logger.info(f"Sending email to {company['company_name']} ({company['hr_email']}) from {account['sender_email']}")
             try:
                 email_body = template_manager.format_template(
@@ -164,6 +213,11 @@ def run_campaign(resume_path: str, batch_size: int = 50, daily_limit: int = 500,
                 company_id = result['company_id']
                 success = result['success']
                 error = result.get('error')
+                if not success and error and is_gmail_limit_error(error):
+                    logger.warning(f"Account {account['sender_email']} exhausted (Gmail limit). Marking as exhausted and retrying with another account.")
+                    mark_account_exhausted(account['sender_email'])
+                    exhausted_accounts = load_exhausted_accounts()  # reload after update
+                    continue  # retry this company with a new account
                 data_manager.mark_email_sent(
                     company_id,
                     status='sent' if success else 'failed',
@@ -189,14 +243,21 @@ def run_campaign(resume_path: str, batch_size: int = 50, daily_limit: int = 500,
                     ])
                     f.flush()
                     os.fsync(f.fileno())
-                # Optional: add a small delay between emails if needed
                 time.sleep(account_config.get('batch_delay', 1))
+                idx += 1
             except Exception as e:
+                error_str = str(e)
+                if is_gmail_limit_error(error_str):
+                    logger.warning(f"Account {account['sender_email']} exhausted (Gmail limit, exception). Marking as exhausted and retrying with another account.")
+                    mark_account_exhausted(account['sender_email'])
+                    exhausted_accounts = load_exhausted_accounts()
+                    continue  # retry this company with a new account
                 logger.error(f"Error sending email for company {company['company_name']}: {e}")
-                data_manager.mark_email_sent(company['id'], status='failed', error_message=str(e))
-                email_tracker.mark_email_sent(company['id'], status='failed', error_message=str(e))
+                data_manager.mark_email_sent(company['id'], status='failed', error_message=error_str)
+                email_tracker.mark_email_sent(company['id'], status='failed', error_message=error_str)
                 save_progress(company['id'])
                 processed_count += 1
+                idx += 1
         
         logger.info(f"Campaign completed. Sent {processed_count} emails.")
         
